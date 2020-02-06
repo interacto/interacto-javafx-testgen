@@ -5,11 +5,44 @@
     <artifactId>interacto-javafx-testgen</artifactId>
     <version>4.1-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <description>A JavaFX front-end test generator based on Interacto</description>
+    <url>https://interacto.github.io</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
     </properties>
+
+    <licenses>
+        <license>
+            <name>The GNU GPL3 license</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.en.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>DiverSE research group</name>
+        <url>http://www.diverse-team.fr</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <name>Arnaud Blouin</name>
+        </developer>
+    </developers>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/interacto/interacto-javafx-testgen/issues</url>
+    </issueManagement>
+
+    <scm>
+        <url>https://github.com/interacto/interacto-javafx-testgen</url>
+        <connection>scm:git:https://github.com/interacto/interacto-javafx-testgen.git</connection>
+        <developerConnection>scm:git:git@github.com:interacto/interacto-javafx-testgen.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
 
     <build>
         <plugins>
