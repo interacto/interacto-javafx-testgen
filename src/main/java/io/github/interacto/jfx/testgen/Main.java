@@ -34,7 +34,8 @@ public final class Main {
 
 			launcher.addTemplateResource(new FileSystemFile("src/main/java/io/github/interacto/jfx/testgen/CmdTestClassTemplate.java"));
 			launcher.getEnvironment().setAutoImports(true);
-			launcher.addProcessor(new CmdProcessor());
+			launcher.getEnvironment().setCopyResources(false);
+//			launcher.addProcessor(new CmdProcessor());
 			launcher.addProcessor(new BindingProcessor());
 			launcher.run();
 		}finally {

@@ -101,6 +101,11 @@
             <artifactId>interacto-javafx-test</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>testfx-junit5</artifactId>
+            <version>4.0.16-alpha</version>
+        </dependency>
     </dependencies>
 
 </project>
