@@ -77,7 +77,16 @@ public class BindingTestClassGenerator {
 		genSetUpBase(baseWidgetFields);
 
 		createNbBidingsTest();
+
+		// Generating base tests and methods for each binding
+		bindings.forEach(genBinding -> generateTestAndMethodForBinder(genBinding));
 	}
+
+
+	private void generateTestAndMethodForBinder(final BindingTestsGenerator genBinding) {
+
+	}
+
 
 	private void genSetUpBase(final List<CtField<?>> baseWidgetFields) {
 		final var setUp = factory.createMethod(genBaseCl, Set.of(),
