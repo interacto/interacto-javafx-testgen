@@ -26,6 +26,8 @@ public class BindingTestsGenerator {
 	/* widgets */
 	final Set<CtFieldReference<?>> widgetFields = new HashSet<>();
 	final Set<CtExpression<?>> collectionWidgets = new HashSet<>();
+	/* User interaction */
+	CtTypeReference<?> interactionType;
 
 
 	public BindingTestsGenerator(final CtClass<?> bindingsClass, final CtInvocation<?> binder,
@@ -39,18 +41,37 @@ public class BindingTestsGenerator {
 	}
 
 	public void generate() {
+		final var binderType = factory.createCtTypeReference(BaseBinderBuilder.class);
+
 		binderRoutines = binder
 			.filterChildren(elt -> elt instanceof CtInvocation)
 			.list(CtInvocation.class)
 			.stream()
-			.filter(invok -> invok.getExecutable().getDeclaringType().isSubtypeOf(factory.createCtTypeReference(BaseBinderBuilder.class)))
+			.filter(invok -> invok.getExecutable().getDeclaringType().isSubtypeOf(binderType) ||
+				invok.getExecutable().getType().isSubtypeOf(binderType))
 			.map(invok -> (CtInvocation<?>) invok)
 			.collect(Collectors.toList());
+
+		extractInteraction();
 
 		binderRoutines
 			.stream()
 			.filter(invok -> "on".equals(invok.getExecutable().getSimpleName()))
 			.forEach(invok -> extractWidgets(invok, invok.getExecutable().getParameters()));
+	}
+
+	private void extractInteraction() {
+		// Looking for the usingInteraction routine to get the interaction
+		interactionType = binderRoutines
+			.stream()
+			.filter(r -> "usingInteraction".equals(r.getExecutable().getSimpleName()))
+			.findFirst()
+			.map(r ->
+				r.getArguments().get(0).getType().getActualTypeArguments().get(0))
+			// If no usingInteraction, looking for the root routine that should implies an interaction
+			// eg buttonBinder()
+			.orElseGet(() -> (CtTypeReference) binderRoutines.get(binderRoutines.size() - 1)
+				.getExecutable().getType().getActualTypeArguments().get(1));
 	}
 
 	private void extractWidgets(final CtInvocation<?> invok, final List<CtTypeReference<?>> parameters) {
