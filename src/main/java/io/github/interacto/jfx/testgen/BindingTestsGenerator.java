@@ -28,6 +28,8 @@ public class BindingTestsGenerator {
 	final Set<CtExpression<?>> collectionWidgets = new HashSet<>();
 	/* User interaction */
 	CtTypeReference<?> interactionType;
+	/* command */
+	CtTypeReference<?> cmdType;
 
 
 	public BindingTestsGenerator(final CtClass<?> bindingsClass, final CtInvocation<?> binder,
@@ -53,11 +55,24 @@ public class BindingTestsGenerator {
 			.collect(Collectors.toList());
 
 		extractInteraction();
+		extractCommand();
 
 		binderRoutines
 			.stream()
 			.filter(invok -> "on".equals(invok.getExecutable().getSimpleName()))
 			.forEach(invok -> extractWidgets(invok, invok.getExecutable().getParameters()));
+	}
+
+	private void extractCommand() {
+		cmdType = binderRoutines
+			.stream()
+			.filter(r -> "toProduce".equals(r.getExecutable().getSimpleName()))
+			.findFirst()
+			.map(r ->
+				r.getArguments().get(0).getType().getActualTypeArguments().get(
+					r.getArguments().get(0).getType().getActualTypeArguments().size() - 1))
+			.orElseGet(() -> (CtTypeReference) binderRoutines.get(binderRoutines.size() - 1)
+				.getExecutable().getType().getActualTypeArguments().get(1));
 	}
 
 	private void extractInteraction() {
