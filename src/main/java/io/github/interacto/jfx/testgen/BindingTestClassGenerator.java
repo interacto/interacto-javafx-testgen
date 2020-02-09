@@ -14,6 +14,7 @@
  */
 package io.github.interacto.jfx.testgen;
 
+import io.github.interacto.interaction.InteractionData;
 import io.github.interacto.jfx.test.BindingsContext;
 import io.github.interacto.jfx.test.WidgetBindingExtension;
 import java.util.List;
@@ -33,6 +34,7 @@ import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.declaration.ModifierKind;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
+import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.reference.CtVariableReference;
 
 public class BindingTestClassGenerator {
@@ -84,7 +86,38 @@ public class BindingTestClassGenerator {
 
 
 	private void generateTestAndMethodForBinder(final BindingTestsGenerator genBinding) {
+		// Creating a description of the binding
+		final String bindingName = genBinding.interactionType.getSimpleName() + "To" + genBinding.cmdType.getSimpleName();
 
+		// Generating the method to be used to activate the binding
+		final var activateMethod = factory.createMethod(genBaseCl, Set.of(ModifierKind.PROTECTED),
+			factory.Type().voidPrimitiveType(), "activate" + bindingName, List.of(), Set.of());
+		activateMethod.setBody(factory.createBlock());
+		createFxRobotParam(activateMethod);
+
+		// Generating the method to check the executing of the binding
+		final var checkMethod = factory.createMethod(genBaseCl, Set.of(ModifierKind.PROTECTED),
+			factory.Type().voidPrimitiveType(), "check" + bindingName, List.of(), Set.of());
+		checkMethod.setBody(factory.createBlock());
+		createParam(checkMethod, "cmd", genBinding.cmdType.getTypeDeclaration().getReference());
+
+		// One parameter of this method is the interaction data
+		// We need to find out the interaction data of the user interaction
+		final var dataType = factory.createCtTypeReference(InteractionData.class);
+		final var currentDataType = genBinding.interactionType.getTypeDeclaration().getSuperInterfaces()
+			.stream()
+			.filter(i -> i.isSubtypeOf(dataType))
+			.findFirst()
+			.orElse(genBinding.interactionType.getTypeDeclaration().getReference());
+		createParam(checkMethod, "data", currentDataType);
+
+		// Generating the test method
+		final var testMethod = factory.createMethod(genBaseCl, Set.of(),
+			factory.Type().voidPrimitiveType(), "test" + bindingName, List.of(), Set.of());
+		testMethod.setBody(factory.createBlock());
+		createFxRobotParam(testMethod);
+		createBindingCtxParam(testMethod);
+		annotate(testMethod, Test.class);
 	}
 
 
@@ -133,11 +166,17 @@ public class BindingTestClassGenerator {
 
 
 	private CtParameter<?> createFxRobotParam(final CtMethod<?> method) {
-		return factory.createParameter(method, factory.createCtTypeReference(FxRobot.class), "robot");
+		return createParam(method, "robot", factory.createCtTypeReference(FxRobot.class));
 	}
 
 	private CtParameter<?> createBindingCtxParam(final CtMethod<?> method) {
-		return factory.createParameter(method, factory.createCtTypeReference(BindingsContext.class), "ctx");
+		return createParam(method, "ctx", factory.createCtTypeReference(BindingsContext.class));
+	}
+
+	private CtParameter<?> createParam(final CtMethod<?> method, final String argName, final CtTypeReference<?> argClass) {
+		final var param = factory.createParameter(method, argClass, argName);
+		param.setModifiers(Set.of(ModifierKind.FINAL));
+		return param;
 	}
 
 	private void annotate(final CtElement elt, final Class<?> annotation) {
