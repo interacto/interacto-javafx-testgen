@@ -1,5 +1,6 @@
 package io.github.interacto.jfx.testgen;
 
+import io.github.interacto.interaction.InteractionData;
 import io.github.interacto.jfx.binding.api.BaseBinderBuilder;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +29,7 @@ public class BindingTestsGenerator {
 	final Set<CtExpression<?>> collectionWidgets = new HashSet<>();
 	/* User interaction */
 	CtTypeReference<?> interactionType;
+	CtTypeReference<?> interactionDataType;
 	/* command */
 	CtTypeReference<?> cmdType;
 
@@ -87,6 +89,14 @@ public class BindingTestsGenerator {
 			// eg buttonBinder()
 			.orElseGet(() -> (CtTypeReference) binderRoutines.get(binderRoutines.size() - 1)
 				.getExecutable().getType().getActualTypeArguments().get(1));
+
+		// Extracting the interaction data type
+		final var dataType = factory.createCtTypeReference(InteractionData.class);
+		interactionDataType = interactionType.getTypeDeclaration().getReferencedTypes()
+			.stream()
+			.filter(i -> i.isInterface() && i.isSubtypeOf(dataType))
+			.findFirst()
+			.orElse(interactionType.getTypeDeclaration().getReference());
 	}
 
 	private void extractWidgets(final CtInvocation<?> invok, final List<CtTypeReference<?>> parameters) {

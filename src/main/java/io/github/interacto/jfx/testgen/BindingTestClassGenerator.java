@@ -14,7 +14,6 @@
  */
 package io.github.interacto.jfx.testgen;
 
-import io.github.interacto.interaction.InteractionData;
 import io.github.interacto.jfx.test.BindingsContext;
 import io.github.interacto.jfx.test.WidgetBindingExtension;
 import java.util.List;
@@ -90,26 +89,22 @@ public class BindingTestClassGenerator {
 		final String bindingName = genBinding.interactionType.getSimpleName() + "To" + genBinding.cmdType.getSimpleName();
 
 		// Generating the method to be used to activate the binding
-		final var activateMethod = factory.createMethod(genBaseCl, Set.of(ModifierKind.PROTECTED),
+		final var activateMethod = factory.createMethod(genBaseCl, Set.of(),
 			factory.Type().voidPrimitiveType(), "activate" + bindingName, List.of(), Set.of());
 		activateMethod.setBody(factory.createBlock());
 		createFxRobotParam(activateMethod);
 
 		// Generating the method to check the executing of the binding
-		final var checkMethod = factory.createMethod(genBaseCl, Set.of(ModifierKind.PROTECTED),
+		final var checkMethod = factory.createMethod(genBaseCl, Set.of(),
 			factory.Type().voidPrimitiveType(), "check" + bindingName, List.of(), Set.of());
 		checkMethod.setBody(factory.createBlock());
 		createParam(checkMethod, "cmd", genBinding.cmdType.getTypeDeclaration().getReference());
+		createParam(checkMethod, "data", genBinding.interactionDataType);
 
-		// One parameter of this method is the interaction data
-		// We need to find out the interaction data of the user interaction
-		final var dataType = factory.createCtTypeReference(InteractionData.class);
-		final var currentDataType = genBinding.interactionType.getTypeDeclaration().getSuperInterfaces()
-			.stream()
-			.filter(i -> i.isSubtypeOf(dataType))
-			.findFirst()
-			.orElse(genBinding.interactionType.getTypeDeclaration().getReference());
-		createParam(checkMethod, "data", currentDataType);
+		// Generating the method that provides interaction data to the test
+		final var dataMethod = factory.createMethod(genBaseCl, Set.of(ModifierKind.ABSTRACT), genBinding.interactionDataType,
+			"data" + bindingName, List.of(), Set.of());
+		createFxRobotParam(dataMethod);
 
 		// Generating the test method
 		final var testMethod = factory.createMethod(genBaseCl, Set.of(),
