@@ -35,6 +35,7 @@ import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.declaration.ModifierKind;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtExecutableReference;
+import spoon.reflect.reference.CtFieldReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.reference.CtVariableReference;
 
@@ -108,19 +109,21 @@ public class BindingTestClassGenerator {
 			"data" + bindingName, List.of(), Set.of());
 		createFxRobotParam(dataMethod);
 
-		// Generating the test method
-		final var testMethod = factory.createMethod(genBaseCl, Set.of(),
-			factory.Type().voidPrimitiveType(), "test" + bindingName, List.of(), Set.of());
-		testMethod.setBody(factory.createBlock());
-		createFxRobotParam(testMethod);
-		createBindingCtxParam(testMethod);
-		annotate(testMethod, Test.class);
-		completeTestMethod(testMethod, checkMethod, dataMethod, activateMethod, genBinding);
+		// Generating the test methods
+		genBinding.widgetFields.forEach(w -> {
+			final var testMethod = factory.createMethod(genBaseCl, Set.of(),
+				factory.Type().voidPrimitiveType(), "test" + bindingName + "Using" + w.getSimpleName(), List.of(), Set.of());
+			testMethod.setBody(factory.createBlock());
+			createFxRobotParam(testMethod);
+			createBindingCtxParam(testMethod);
+			annotate(testMethod, Test.class);
+			completeTestMethod(testMethod, checkMethod, dataMethod, activateMethod, genBinding, w);
+		});
 	}
 
 
 	private void completeTestMethod(final CtMethod<?> test, final CtMethod<?> check, final CtMethod<?> data, final CtMethod<?> activate,
-			final BindingTestsGenerator genBinding) {
+				final BindingTestsGenerator genBinding, final CtFieldReference<?> w) {
 		// Adding the invocation to the activation method
 		test.getBody().addStatement(
 			factory.createInvocation(null, activate.getReference(),
@@ -136,7 +139,7 @@ public class BindingTestClassGenerator {
 		test.getBody().addStatement(dataVar);
 
 		// Adding the interaction execution
-		generateInteractionSequence(test, genBinding.interactionType);
+		InteractionSequencesGen.genSequences(genBinding.interactionType, test, test.getParameters().get(0).getReference(), w);
 		final var wait = factory.createCtTypeReference(WaitForAsyncUtils.class);
 		test.getBody().addStatement(factory.createInvocation(factory.createTypeAccess(wait),
 			wait.getAllExecutables()
@@ -168,10 +171,6 @@ public class BindingTestClassGenerator {
 				factory.createVariableRead(cmdVar.getReference(), false),
 				factory.createVariableRead(dataVar.getReference(), false))
 		);
-	}
-
-	private void generateInteractionSequence(final CtMethod<?> test, final CtTypeReference<?> interaction) {
-
 	}
 
 
