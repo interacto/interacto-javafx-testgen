@@ -17,16 +17,19 @@ package io.github.interacto.jfx.testgen;
 import io.github.interacto.jfx.test.BindingsContext;
 import io.github.interacto.jfx.test.CmdAssert;
 import io.github.interacto.jfx.test.WidgetBindingExtension;
+import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.testfx.api.FxRobot;
 import org.testfx.service.query.NodeQuery;
 import org.testfx.util.WaitForAsyncUtils;
 import spoon.reflect.code.CtBlock;
 import spoon.reflect.code.CtInvocation;
+import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtElement;
 import spoon.reflect.declaration.CtField;
@@ -59,7 +62,8 @@ public class BindingTestClassGenerator {
 		genBaseCl = factory.createClass(bindingsClass.getPackage(), bindingsClass.getSimpleName() + "BaseTest");
 		genImplCl = factory.createClass(bindingsClass.getPackage(), bindingsClass.getSimpleName() + "Test");
 
-		annotate(genBaseCl, WidgetBindingExtension.class);
+		final var annotExtends = annotate(genBaseCl, ExtendWith.class);
+		annotExtends.addValue("value", WidgetBindingExtension.class);
 		genBaseCl.setModifiers(Set.of(ModifierKind.PUBLIC, ModifierKind.ABSTRACT));
 
 		bindings = binders
@@ -232,8 +236,10 @@ public class BindingTestClassGenerator {
 		return param;
 	}
 
-	private void annotate(final CtElement elt, final Class<?> annotation) {
-		elt.addAnnotation(factory.createAnnotation(factory.createCtTypeReference(annotation)));
+	private CtAnnotation<Annotation> annotate(final CtElement elt, final Class<?> annotation) {
+		final CtAnnotation<Annotation> annot = factory.createAnnotation(factory.createCtTypeReference(annotation));
+		elt.addAnnotation(annot);
+		return annot;
 	}
 
 	private CtExecutableReference<?> getMethod(final Class<?> cl, final String name) {
