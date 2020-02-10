@@ -14,6 +14,7 @@
  */
 package io.github.interacto.jfx.testgen;
 
+import io.github.interacto.interaction.InteractionData;
 import io.github.interacto.jfx.test.BindingsContext;
 import io.github.interacto.jfx.test.CmdAssert;
 import io.github.interacto.jfx.test.WidgetBindingExtension;
@@ -24,7 +25,9 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.testfx.api.FxRobot;
+import org.testfx.framework.junit5.ApplicationExtension;
 import org.testfx.service.query.NodeQuery;
 import org.testfx.util.WaitForAsyncUtils;
 import spoon.reflect.code.CtBlock;
@@ -62,16 +65,82 @@ public class BindingTestClassGenerator {
 		genBaseCl = factory.createClass(bindingsClass.getPackage(), bindingsClass.getSimpleName() + "BaseTest");
 		genImplCl = factory.createClass(bindingsClass.getPackage(), bindingsClass.getSimpleName() + "Test");
 
-		final var annotExtends = annotate(genBaseCl, ExtendWith.class);
-		annotExtends.addValue("value", WidgetBindingExtension.class);
-		genBaseCl.setModifiers(Set.of(ModifierKind.PUBLIC, ModifierKind.ABSTRACT));
-
 		bindings = binders
 				.stream()
 				.map(binder -> new BindingTestsGenerator(bindingsClass, binder, genBaseCl, genImplCl))
 				.collect(Collectors.toList());
 		bindings.forEach(gen -> gen.generate());
 
+		configBaseTestClass();
+		configImplTestClass();
+	}
+
+
+	/* Impl test class methods */
+
+	private void configImplTestClass() {
+		// public class
+		genImplCl.setModifiers(Set.of(ModifierKind.PUBLIC));
+		// super class
+		genImplCl.setSuperclass(genBaseCl.getReference());
+
+		// Adding the TestFX annotation
+		final var annot = factory.createAnnotation(factory.createCtTypeReference(ExtendWith.class));
+		annot.addValue("value", ApplicationExtension.class);
+		genImplCl.addAnnotation(annot);
+
+		genBaseCl.getAllExecutables()
+			.stream()
+			.map(e -> e.getDeclaration())
+			.filter(CtMethod.class::isInstance)
+			.map(CtMethod.class::cast)
+			.filter(CtMethod::isAbstract)
+			.forEach(m -> {
+				final CtMethod<?> m2 = m.clone();
+				m2.setModifiers(Set.of());
+				m2.setBody(factory.createBlock());
+				genImplCl.addMethod(m2);
+				annotate(m2, Override.class);
+			});
+
+		completeImplDataMethods();
+	}
+
+
+	private void completeImplDataMethods() {
+		final var returnType = factory.createCtTypeReference(InteractionData.class);
+		final var mockito = factory.createCtTypeReference(Mockito.class);
+
+		genImplCl.getAllExecutables()
+			.stream()
+			.map(e -> e.getDeclaration())
+			.filter(CtMethod.class::isInstance)
+			.map(CtMethod.class::cast)
+			.filter(m -> m.getType().isSubtypeOf(returnType))
+			.forEach(m -> {
+				final var data = factory.createLocalVariable(m.getType(), "data",
+					factory.createInvocation(
+						factory.createTypeAccess(mockito),
+						mockito.getAllExecutables().stream()
+							.filter(e -> "mock".equals(e.getSimpleName()) && e.getParameters().size() == 1).findFirst().orElseThrow(),
+						factory.createClassAccess(m.getType())));
+				data.setModifiers(Set.of(ModifierKind.FINAL));
+
+				m.getBody().addStatement(data);
+
+				final var ret = factory.createReturn();
+				ret.setReturnedExpression(factory.createVariableRead(data.getReference(), false));
+				m.getBody().addStatement(ret);
+			});
+	}
+
+
+	/* Base test class methods */
+
+	private void configBaseTestClass() {
+		final var annotExtends = annotate(genBaseCl, ExtendWith.class);
+		annotExtends.addValue("value", WidgetBindingExtension.class);
+		genBaseCl.setModifiers(Set.of(ModifierKind.PUBLIC, ModifierKind.ABSTRACT));
 
 		factory.createField(genBaseCl, Set.of(), bindingsClass.getReference(), bindingsClass.getSimpleName().toLowerCase());
 
@@ -82,16 +151,15 @@ public class BindingTestClassGenerator {
 			.map(w -> (CtField<?>) factory.createField(genBaseCl, Set.of(), w.getType(), w.getSimpleName()))
 			.collect(Collectors.toList());
 
-		genSetUpBase(baseWidgetFields);
+		genBaseSetUp(baseWidgetFields);
 
-		createNbBidingsTest();
+		createBaseNbBidingsTest();
 
 		// Generating base tests and methods for each binding
-		bindings.forEach(genBinding -> generateTestAndMethodForBinder(genBinding));
+		bindings.forEach(genBinding -> generateBaseTestAndMethodForBinder(genBinding));
 	}
 
-
-	private void generateTestAndMethodForBinder(final BindingTestsGenerator genBinding) {
+	private void generateBaseTestAndMethodForBinder(final BindingTestsGenerator genBinding) {
 		// Creating a description of the binding
 		final String bindingName = genBinding.interactionType.getSimpleName() + "To" + genBinding.cmdType.getSimpleName();
 
@@ -121,12 +189,12 @@ public class BindingTestClassGenerator {
 			createFxRobotParam(testMethod);
 			createBindingCtxParam(testMethod);
 			annotate(testMethod, Test.class);
-			completeTestMethod(testMethod, checkMethod, dataMethod, activateMethod, genBinding, w);
+			completeBaseTestMethod(testMethod, checkMethod, dataMethod, activateMethod, genBinding, w);
 		});
 	}
 
 
-	private void completeTestMethod(final CtMethod<?> test, final CtMethod<?> check, final CtMethod<?> data, final CtMethod<?> activate,
+	private void completeBaseTestMethod(final CtMethod<?> test, final CtMethod<?> check, final CtMethod<?> data, final CtMethod<?> activate,
 				final BindingTestsGenerator genBinding, final CtFieldReference<?> w) {
 		// Adding the invocation to the activation method
 		test.getBody().addStatement(
@@ -178,7 +246,7 @@ public class BindingTestClassGenerator {
 	}
 
 
-	private void genSetUpBase(final List<CtField<?>> baseWidgetFields) {
+	private void genBaseSetUp(final List<CtField<?>> baseWidgetFields) {
 		final var setUp = factory.createMethod(genBaseCl, Set.of(),
 			factory.Type().voidPrimitiveType(),"setUp" + genBaseCl.getSimpleName(), List.of(), Set.of());
 		final CtBlock<?> body = factory.createBlock();
@@ -208,7 +276,7 @@ public class BindingTestClassGenerator {
 	}
 
 
-	private void createNbBidingsTest() {
+	private void createBaseNbBidingsTest() {
 		final var test = factory.createMethod(genBaseCl, Set.of(), factory.Type().voidPrimitiveType(), "testNumberOfBindings", List.of(), Set.of());
 		final var param = createBindingCtxParam(test);
 		annotate(test, Test.class);
@@ -220,6 +288,10 @@ public class BindingTestClassGenerator {
 			getMethod(BindingsContext.class, "hasBindings"),
 			factory.createLiteral(binders.size())));
 	}
+
+
+
+	/* Utility methods */
 
 
 	private CtParameter<?> createFxRobotParam(final CtMethod<?> method) {
