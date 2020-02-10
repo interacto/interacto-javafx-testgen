@@ -15,6 +15,7 @@
 package io.github.interacto.jfx.testgen;
 
 import io.github.interacto.jfx.test.BindingsContext;
+import io.github.interacto.jfx.test.CmdAssert;
 import io.github.interacto.jfx.test.WidgetBindingExtension;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testfx.api.FxRobot;
 import org.testfx.service.query.NodeQuery;
+import org.testfx.util.WaitForAsyncUtils;
 import spoon.reflect.code.CtBlock;
 import spoon.reflect.code.CtInvocation;
 import spoon.reflect.declaration.CtClass;
@@ -113,6 +115,63 @@ public class BindingTestClassGenerator {
 		createFxRobotParam(testMethod);
 		createBindingCtxParam(testMethod);
 		annotate(testMethod, Test.class);
+		completeTestMethod(testMethod, checkMethod, dataMethod, activateMethod, genBinding);
+	}
+
+
+	private void completeTestMethod(final CtMethod<?> test, final CtMethod<?> check, final CtMethod<?> data, final CtMethod<?> activate,
+			final BindingTestsGenerator genBinding) {
+		// Adding the invocation to the activation method
+		test.getBody().addStatement(
+			factory.createInvocation(null, activate.getReference(),
+				factory.createVariableRead(test.getParameters().get(0).getReference(), false))
+		);
+
+		// Adding the invocation and assignment to the data method
+		final var dataVar = factory.createLocalVariable((CtTypeReference) data.getType(), "data",
+			factory.createInvocation(null, data.getReference(),
+				factory.createVariableRead(test.getParameters().get(0).getReference(), false))
+		);
+		dataVar.setModifiers(Set.of(ModifierKind.FINAL));
+		test.getBody().addStatement(dataVar);
+
+		// Adding the interaction execution
+		generateInteractionSequence(test, genBinding.interactionType);
+		final var wait = factory.createCtTypeReference(WaitForAsyncUtils.class);
+		test.getBody().addStatement(factory.createInvocation(factory.createTypeAccess(wait),
+			wait.getAllExecutables()
+				.stream()
+				.filter(e -> "waitForFxEvents".equals(e.getSimpleName()) && e.getParameters().isEmpty())
+				.findFirst().orElseThrow())
+		);
+
+		// Adding the command execution assertion
+		final var bindingCtx = test.getParameters().get(1);
+		final var cmdVar = factory.createLocalVariable((CtTypeReference) genBinding.cmdType, "cmd",
+			factory.createInvocation(
+				factory.createInvocation(
+					factory.createVariableRead(bindingCtx.getReference(), false),
+					bindingCtx.getType().getAllExecutables().stream()
+						.filter(e -> e.getParameters().size() == 1 && "oneCmdProducedAmong".equals(e.getSimpleName()))
+						.findFirst().orElseThrow(),
+					factory.createClassAccess(genBinding.cmdType)),
+				factory.createCtTypeReference(CmdAssert.class).getAllExecutables().stream()
+					.filter(e -> e.getParameters().isEmpty() && "getCommand".equals(e.getSimpleName()))
+					.findFirst().orElseThrow()
+		));
+		cmdVar.setModifiers(Set.of(ModifierKind.FINAL));
+		test.getBody().addStatement(cmdVar);
+
+		// Adding the invocation to the checking method
+		test.getBody().addStatement(
+			factory.createInvocation(null, check.getReference(),
+				factory.createVariableRead(cmdVar.getReference(), false),
+				factory.createVariableRead(dataVar.getReference(), false))
+		);
+	}
+
+	private void generateInteractionSequence(final CtMethod<?> test, final CtTypeReference<?> interaction) {
+
 	}
 
 
