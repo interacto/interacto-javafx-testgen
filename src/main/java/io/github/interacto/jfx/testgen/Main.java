@@ -18,6 +18,8 @@ import com.sun.javafx.application.PlatformImpl;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import spoon.MavenLauncher;
+import spoon.reflect.declaration.CtNamedElement;
+import spoon.support.JavaOutputProcessor;
 import spoon.support.compiler.FileSystemFile;
 
 public final class Main {
@@ -42,6 +44,13 @@ public final class Main {
 			launcher.addTemplateResource(new FileSystemFile("src/main/java/io/github/interacto/jfx/testgen/TestStartTemplate.java"));
 			launcher.getEnvironment().setAutoImports(true);
 			launcher.getEnvironment().setCopyResources(false);
+			// Generating test files only
+			launcher.getEnvironment().setDefaultFileGenerator(new JavaOutputProcessor() {
+				@Override
+				public boolean isToBeProcessed(final CtNamedElement candidate) {
+					return candidate.getSimpleName().endsWith("Test") && super.isToBeProcessed(candidate);
+				}
+			});
 			launcher.addProcessor(new CmdProcessor());
 			launcher.addProcessor(new BindingProcessor(fxmls));
 			launcher.run();
