@@ -93,6 +93,13 @@ public class BindingTestClassGenerator {
 		annot.addValue("value", ApplicationExtension.class);
 		genImplCl.addAnnotation(annot);
 
+		genImplDataMethods();
+		genImplActivateCheckMethod();
+		completeImplDataMethods();
+		genImplStartMethod();
+	}
+
+	private void genImplDataMethods() {
 		genBaseCl.getAllExecutables()
 			.stream()
 			.map(e -> e.getDeclaration())
@@ -106,9 +113,22 @@ public class BindingTestClassGenerator {
 				genImplCl.addMethod(m2);
 				annotate(m2, Override.class);
 			});
+	}
 
-		completeImplDataMethods();
-		genImplStartMethod();
+	private void genImplActivateCheckMethod() {
+		genBaseCl.getAllExecutables()
+			.stream()
+			.map(e -> e.getDeclaration())
+			.filter(CtMethod.class::isInstance)
+			.map(CtMethod.class::cast)
+			.filter(m -> m.getSimpleName().startsWith("activate") || m.getSimpleName().startsWith("check"))
+			.forEach(m -> {
+				final CtMethod<?> m2 = m.clone();
+				m2.setModifiers(Set.of());
+				m2.setBody(factory.createBlock());
+				genImplCl.addMethod(m2);
+				annotate(m2, Override.class);
+			});
 	}
 
 
