@@ -23,12 +23,12 @@ public class InteractionSequencesGen {
 
 	public static void genSequences(final CtTypeReference<?> interactionType, final CtMethod<?> test, final CtVariableReference<?> robot,
 			final CtFieldReference<?> widget) {
-		generatorCalls.getOrDefault(interactionType.getSimpleName(), (t, r, w) -> {}).genSequences(test, robot, widget);
+		System.out.println(interactionType.getQualifiedName() + " " + ButtonPressed.class.getName());
+		generatorCalls.getOrDefault(interactionType.getQualifiedName(), (t, r, w) -> {}).genSequences(test, robot, widget);
 	}
 
 	public static void genButtonPressedSequences(final CtMethod<?> test, final CtVariableReference<?> robot, CtFieldReference<?> w) {
 		final Factory factory = robot.getFactory();
-
 		test.getBody().addStatement(
 			factory.createInvocation(factory.createVariableRead(robot, false), findMethod("clickOn", robot.getType(), 1),
 				factory.createVariableRead(w, false))
