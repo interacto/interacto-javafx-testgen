@@ -285,7 +285,7 @@ public class BindingTestClassGenerator {
 
 	private void genBaseSetUp(final List<CtField<?>> baseWidgetFields) {
 		final var setUp = factory.createMethod(genBaseCl, Set.of(),
-			factory.Type().voidPrimitiveType(),"setUp" + genBaseCl.getSimpleName(), List.of(), Set.of());
+			factory.Type().voidPrimitiveType(), "setUp" + genBaseCl.getSimpleName(), List.of(), Set.of());
 		final CtBlock<?> body = factory.createBlock();
 
 		annotate(setUp, BeforeEach.class);
