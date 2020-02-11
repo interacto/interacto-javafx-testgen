@@ -27,20 +27,21 @@ public final class Main {
 
 	public static void main(final String[] args) throws InterruptedException, IOException {
 		try {
-			final MavenLauncher launcher = new MavenLauncher("../example-jfx-drawingeditor/pom.xml", MavenLauncher.SOURCE_TYPE.APP_SOURCE);
+			final String basePath = "../example-jfx-drawingeditor/";
+			final MavenLauncher launcher = new MavenLauncher(basePath + "pom.xml", MavenLauncher.SOURCE_TYPE.APP_SOURCE);
 
 			final CountDownLatch startupLatch = new CountDownLatch(1);
 			PlatformImpl.startup(() -> startupLatch.countDown());
 			startupLatch.await();
 
-			final var fxmls = new FXMLExtractor("../example-jfx-drawingeditor/src/main/resources/");
+			final var fxmls = new FXMLExtractor(basePath + "/src/main/resources/");
 			fxmls.extract();
 
 			launcher.addTemplateResource(new FileSystemFile("src/main/java/io/github/interacto/jfx/testgen/CmdTestClassTemplate.java"));
 			launcher.addTemplateResource(new FileSystemFile("src/main/java/io/github/interacto/jfx/testgen/TestStartTemplate.java"));
 			launcher.getEnvironment().setAutoImports(true);
 			launcher.getEnvironment().setCopyResources(false);
-//			launcher.addProcessor(new CmdProcessor());
+			launcher.addProcessor(new CmdProcessor());
 			launcher.addProcessor(new BindingProcessor(fxmls));
 			launcher.run();
 		}finally {
