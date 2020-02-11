@@ -28,13 +28,14 @@ public final class Main {
 	public static void main(final String[] args) throws InterruptedException, IOException {
 		try {
 			final String basePath = "../example-jfx-drawingeditor/";
+//			final String basePath = "../../latexdraw/latexdraw/";
 			final MavenLauncher launcher = new MavenLauncher(basePath + "pom.xml", MavenLauncher.SOURCE_TYPE.APP_SOURCE);
 
 			final CountDownLatch startupLatch = new CountDownLatch(1);
 			PlatformImpl.startup(() -> startupLatch.countDown());
 			startupLatch.await();
 
-			final var fxmls = new FXMLExtractor(basePath + "/src/main/resources/");
+			final var fxmls = new FXMLExtractor(basePath + "src/main/resources/");
 			fxmls.extract();
 
 			launcher.addTemplateResource(new FileSystemFile("src/main/java/io/github/interacto/jfx/testgen/CmdTestClassTemplate.java"));
