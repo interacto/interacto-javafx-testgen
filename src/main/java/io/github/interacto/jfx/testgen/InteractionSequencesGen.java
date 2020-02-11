@@ -17,13 +17,13 @@ public class InteractionSequencesGen {
 		void genSequences(final CtMethod<?> test, final CtVariableReference<?> robot, CtFieldReference<?> widget);
 	}
 
-	private static final Map<Class<?>, SeqGen> generatorCalls = Map.of(
-		ButtonPressed.class, (t, r, w) -> genButtonPressedSequences(t, r, w)
+	private static final Map<String, SeqGen> generatorCalls = Map.of(
+		ButtonPressed.class.getName(), (t, r, w) -> genButtonPressedSequences(t, r, w)
 	);
 
 	public static void genSequences(final CtTypeReference<?> interactionType, final CtMethod<?> test, final CtVariableReference<?> robot,
 			final CtFieldReference<?> widget) {
-		generatorCalls.getOrDefault(interactionType.getActualClass(), (t, r, w) -> {}).genSequences(test, robot, widget);
+		generatorCalls.getOrDefault(interactionType.getSimpleName(), (t, r, w) -> {}).genSequences(test, robot, widget);
 	}
 
 	public static void genButtonPressedSequences(final CtMethod<?> test, final CtVariableReference<?> robot, CtFieldReference<?> w) {
