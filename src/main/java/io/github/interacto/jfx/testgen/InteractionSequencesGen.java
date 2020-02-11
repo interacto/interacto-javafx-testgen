@@ -23,7 +23,6 @@ public class InteractionSequencesGen {
 
 	public static void genSequences(final CtTypeReference<?> interactionType, final CtMethod<?> test, final CtVariableReference<?> robot,
 			final CtFieldReference<?> widget) {
-		System.out.println(interactionType.getQualifiedName() + " " + ButtonPressed.class.getName());
 		generatorCalls.getOrDefault(interactionType.getQualifiedName(), (t, r, w) -> {}).genSequences(test, robot, widget);
 	}
 
