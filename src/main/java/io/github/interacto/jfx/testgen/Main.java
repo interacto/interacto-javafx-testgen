@@ -15,6 +15,7 @@
 package io.github.interacto.jfx.testgen;
 
 import com.sun.javafx.application.PlatformImpl;
+import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import spoon.MavenLauncher;
 import spoon.support.compiler.FileSystemFile;
@@ -24,7 +25,7 @@ public final class Main {
 		super();
 	}
 
-	public static void main(final String[] args) throws InterruptedException {
+	public static void main(final String[] args) throws InterruptedException, IOException {
 		try {
 			final MavenLauncher launcher = new MavenLauncher("../example-jfx-drawingeditor/pom.xml", MavenLauncher.SOURCE_TYPE.APP_SOURCE);
 
@@ -32,11 +33,15 @@ public final class Main {
 			PlatformImpl.startup(() -> startupLatch.countDown());
 			startupLatch.await();
 
+			final var fxmls = new FXMLExtractor("../example-jfx-drawingeditor/src/main/resources/");
+			fxmls.extract();
+
 			launcher.addTemplateResource(new FileSystemFile("src/main/java/io/github/interacto/jfx/testgen/CmdTestClassTemplate.java"));
+			launcher.addTemplateResource(new FileSystemFile("src/main/java/io/github/interacto/jfx/testgen/TestStartTemplate.java"));
 			launcher.getEnvironment().setAutoImports(true);
 			launcher.getEnvironment().setCopyResources(false);
 //			launcher.addProcessor(new CmdProcessor());
-			launcher.addProcessor(new BindingProcessor());
+			launcher.addProcessor(new BindingProcessor(fxmls));
 			launcher.run();
 		}finally {
 			PlatformImpl.exit();

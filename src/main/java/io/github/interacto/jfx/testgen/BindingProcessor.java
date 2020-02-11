@@ -26,9 +26,11 @@ import spoon.reflect.reference.CtExecutableReference;
 
 public class BindingProcessor extends AbstractProcessor<CtInvocation<?>> {
 	final Map<CtClass<?>, Set<CtInvocation<?>>> binders;
+	final FXMLExtractor fxmls;
 
-	public BindingProcessor() {
+	public BindingProcessor(final FXMLExtractor fxmls) {
 		super();
+		this.fxmls = fxmls;
 		binders = new HashMap<>();
 	}
 
@@ -49,6 +51,6 @@ public class BindingProcessor extends AbstractProcessor<CtInvocation<?>> {
 
 	@Override
 	public void processingDone() {
-		binders.forEach((key, value) -> new BindingTestClassGenerator(key, value).generate());
+		binders.forEach((key, value) -> new BindingTestClassGenerator(key, value, fxmls.fxmlData.get(key.getQualifiedName())).generate());
 	}
 }

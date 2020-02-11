@@ -50,7 +50,6 @@ public class CmdTestGenerator {
 	public void generate() {
 		factory = cmd.getFactory();
 		cmdTypeRef = factory.createCtTypeReference(CommandImpl.class);
-		System.out.println(cmd.getSimpleName() + "Test in " + cmd.getPackage());
 		testClass = factory.createClass(cmd.getPackage(), cmd.getSimpleName() + "Test");
 		isUndoable = cmd.isSubtypeOf(factory.createCtTypeReference(Undoable.class));
 

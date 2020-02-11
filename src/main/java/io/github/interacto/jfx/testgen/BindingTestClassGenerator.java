@@ -44,21 +44,25 @@ import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtFieldReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.reference.CtVariableReference;
+import spoon.template.Substitution;
 
 public class BindingTestClassGenerator {
 	private final CtClass<?> bindingsClass;
 	private final Set<CtInvocation<?>> binders;
 	private final Factory factory;
+	private final String fxmlPath;
 
 	private CtClass<?> genBaseCl;
 	private CtClass<?> genImplCl;
 	List<BindingTestsGenerator> bindings;
+	private CtField<?> controller;
 
-	public BindingTestClassGenerator(final CtClass<?> bindingsClass, final Set<CtInvocation<?>> binders) {
+	public BindingTestClassGenerator(final CtClass<?> bindingsClass, final Set<CtInvocation<?>> binders, final String fxmlPath) {
 		super();
 		this.bindingsClass = bindingsClass;
 		this.binders = binders;
 		factory = bindingsClass.getFactory();
+		this.fxmlPath = fxmlPath;
 	}
 
 	public void generate() {
@@ -104,6 +108,7 @@ public class BindingTestClassGenerator {
 			});
 
 		completeImplDataMethods();
+		genImplStartMethod();
 	}
 
 
@@ -135,6 +140,16 @@ public class BindingTestClassGenerator {
 	}
 
 
+	private void genImplStartMethod() {
+		final var template = new TestStartTemplate();
+		template.Object = controller.getType().getSimpleName();
+		template.path = "\"" + fxmlPath + "\"";
+		template.controller = controller.getSimpleName();
+		template.cons = factory.createConstructorCall(controller.getType());
+		Substitution.insertAllMethods(genImplCl, template);
+	}
+
+
 	/* Base test class methods */
 
 	private void configBaseTestClass() {
@@ -142,7 +157,7 @@ public class BindingTestClassGenerator {
 		annotExtends.addValue("value", WidgetBindingExtension.class);
 		genBaseCl.setModifiers(Set.of(ModifierKind.PUBLIC, ModifierKind.ABSTRACT));
 
-		factory.createField(genBaseCl, Set.of(), bindingsClass.getReference(), bindingsClass.getSimpleName().toLowerCase());
+		controller = factory.createField(genBaseCl, Set.of(), bindingsClass.getReference(), bindingsClass.getSimpleName().toLowerCase());
 
 		final List<CtField<?>> baseWidgetFields = bindings.stream()
 			.map(b -> b.widgetFields)
