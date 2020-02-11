@@ -198,32 +198,34 @@ public class BindingTestClassGenerator {
 		// Creating a description of the binding
 		final String bindingName = genBinding.interactionType.getSimpleName() + "To" + genBinding.cmdType.getSimpleName();
 
-		// Generating the method to be used to activate the binding
-		final var activateMethod = factory.createMethod(genBaseCl, Set.of(),
-			factory.Type().voidPrimitiveType(), "activate" + bindingName, List.of(), Set.of());
-		activateMethod.setBody(factory.createBlock());
-		createFxRobotParam(activateMethod);
-
-		// Generating the method to check the executing of the binding
-		final var checkMethod = factory.createMethod(genBaseCl, Set.of(),
-			factory.Type().voidPrimitiveType(), "check" + bindingName, List.of(), Set.of());
-		checkMethod.setBody(factory.createBlock());
-		createParam(checkMethod, "cmd", genBinding.cmdType.getTypeDeclaration().getReference());
-		createParam(checkMethod, "data", genBinding.interactionDataType);
-
-		// Generating the method that provides interaction data to the test
-		final var dataMethod = factory.createMethod(genBaseCl, Set.of(ModifierKind.ABSTRACT), genBinding.interactionDataType,
-			"data" + bindingName, List.of(), Set.of());
-		createFxRobotParam(dataMethod);
-
 		// Generating the test methods
 		genBinding.widgetFields.forEach(w -> {
+			final var currentBindingName = bindingName + "Using" + w.getSimpleName();
 			final var testMethod = factory.createMethod(genBaseCl, Set.of(),
-				factory.Type().voidPrimitiveType(), "test" + bindingName + "Using" + w.getSimpleName(), List.of(), Set.of());
+				factory.Type().voidPrimitiveType(), "test" + currentBindingName, List.of(), Set.of());
 			testMethod.setBody(factory.createBlock());
 			createFxRobotParam(testMethod);
 			createBindingCtxParam(testMethod);
 			annotate(testMethod, Test.class);
+
+			// Generating the method to be used to activate the binding
+			final var activateMethod = factory.createMethod(genBaseCl, Set.of(),
+				factory.Type().voidPrimitiveType(), "activate" + currentBindingName, List.of(), Set.of());
+			activateMethod.setBody(factory.createBlock());
+			createFxRobotParam(activateMethod);
+
+			// Generating the method to check the executing of the binding
+			final var checkMethod = factory.createMethod(genBaseCl, Set.of(),
+				factory.Type().voidPrimitiveType(), "check" + currentBindingName, List.of(), Set.of());
+			checkMethod.setBody(factory.createBlock());
+			createParam(checkMethod, "cmd", genBinding.cmdType.getTypeDeclaration().getReference());
+			createParam(checkMethod, "data", genBinding.interactionDataType);
+
+			// Generating the method that provides interaction data to the test
+			final var dataMethod = factory.createMethod(genBaseCl, Set.of(ModifierKind.ABSTRACT), genBinding.interactionDataType,
+				"data" + currentBindingName, List.of(), Set.of());
+			createFxRobotParam(dataMethod);
+
 			completeBaseTestMethod(testMethod, checkMethod, dataMethod, activateMethod, genBinding, w);
 		});
 	}
