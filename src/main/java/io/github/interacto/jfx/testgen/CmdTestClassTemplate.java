@@ -31,9 +31,4 @@ public class CmdTestClassTemplate extends ExtensionTemplate {
 		return () -> {
 		};
 	}
-
-	protected Runnable undoChecker() {
-		return () -> {
-		};
-	}
 }

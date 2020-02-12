@@ -71,6 +71,12 @@ public class CmdTestGenerator {
 		final CtAnnotation<Annotation> overrideAnnot = factory.createAnnotation(factory.createCtTypeReference(Override.class));
 		testClass.getMethods().forEach(m -> m.addAnnotation(overrideAnnot));
 
+		if(isUndoable) {
+			final var undochecker = testClass.getMethod("doChecker").clone();
+			undochecker.setSimpleName("undoChecker");
+			testClass.addMethod(undochecker);
+		}
+
 		addAttributes();
 
 		addTearDown();
