@@ -73,6 +73,11 @@ public class CmdTestGenerator {
 			.stream()
 			.filter(f -> !f.getDeclaringType().equals(cmdTypeRef))
 			.map(f -> (CtField<?>) factory.createField(testClass, Set.of(), f.getType(), f.getSimpleName()))
+			.peek(f -> {
+				final var type = f.getType();
+				List.copyOf(f.getAnnotations()).forEach(a -> f.removeAnnotation(a));
+				List.copyOf(f.getType().getAnnotations()).forEach(a -> type.removeAnnotation(a));
+			})
 			.collect(Collectors.toList());
 	}
 
