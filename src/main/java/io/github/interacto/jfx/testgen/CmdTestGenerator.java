@@ -26,6 +26,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import spoon.reflect.code.CtBlock;
 import spoon.reflect.code.CtComment;
+import spoon.reflect.code.CtLiteral;
 import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtField;
@@ -150,9 +151,19 @@ public class CmdTestGenerator {
 
 		body.getStatements().addAll(
 			fields.stream()
-				.map(f -> factory.createVariableAssignment(f.getReference(), false, factory.createLiteral(null)))
+				.map(f -> factory.createVariableAssignment(f.getReference(), false,
+					(CtLiteral) factory.createLiteral(getDefaultLiteral(f.getType()))))
 				.collect(Collectors.toList())
 		);
+	}
 
+	private static Object getDefaultLiteral(final CtTypeReference<?> type) {
+		if(type.isPrimitive()) {
+			if(type.equals(type.getFactory().Type().BOOLEAN_PRIMITIVE)) {
+				return false;
+			}
+			return 0;
+		}
+		return null;
 	}
 }
