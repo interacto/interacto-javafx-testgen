@@ -78,17 +78,33 @@ public class CmdTestGenerator {
 	/**
 	 * Finds a generics declaration in its super classes
 	 */
-	private static CtTypeParameter findGenerics(final CtTypeReference<?> type, final String genericName) {
+	private static CtTypeReference<?> findGenerics(final CtTypeReference<?> type, final String genericName, final List<CtTypeReference<?>> typeArgs) {
 		if(type == null) {
 			return null;
 		}
-		return type
-			.getTypeDeclaration()
-			.getFormalCtTypeParameters()
+		final List<CtTypeParameter> formalParams = type.getTypeDeclaration().getFormalCtTypeParameters();
+
+		return formalParams
 			.stream()
 			.filter(g -> genericName.equals(g.getSimpleName()))
 			.findFirst()
-			.orElseGet(() -> findGenerics(type.getSuperclass(), genericName));
+			.map(g -> {
+				// The type has a generics that matches the name we are looking for.
+				// So, we look whether the lower class specified type arguments related to this class
+				// If yes, we return this type argument as it is a specialisation of the generics.
+				// If no, we take the generics and grabs its super bound (class). Interfaces should be supported in a future version
+				final var i = formalParams.indexOf(g);
+				if(i >= typeArgs.size()) {
+					// If no super bound, use Object
+					if(g.getSuperclass() == null) {
+						return type.getFactory().createCtTypeReference(Object.class);
+					}
+					return g.getSuperclass();
+				}
+				return typeArgs.get(i);
+			})
+			.orElseGet(() -> findGenerics(type.getSuperclass(), genericName,
+				type.getSuperclass() == null ? List.of() : type.getSuperclass().getActualTypeArguments()));
 	}
 
 	private void addAttributes() {
@@ -96,21 +112,12 @@ public class CmdTestGenerator {
 			.stream()
 			.filter(f -> !f.getDeclaringType().equals(cmdTypeRef))
 			.map(f -> {
-				CtTypeReference<?> newType = f.getType();
 				// If the type is a generics, have to replace it by its concrete definition
-				if(newType instanceof CtTypeParameterReference) {
-					final CtTypeParameter param = findGenerics(f.getDeclaringType(), f.getType().getSimpleName());
-					if(param.getSuperclass() == null) {
-						// If no super bound, use Object
-						newType = factory.createCtTypeReference(Object.class);
-					}else {
-						newType = param.getSuperclass();
-					}
-				}
+				final CtTypeReference<?> newType = f.getType() instanceof CtTypeParameterReference ?
+					findGenerics(cmd.getReference(), f.getType().getSimpleName(), List.of()) : f.getType();
 				// Removing all the annotations put on the field
-				final var newTypeConst = newType;
 				List.copyOf(f.getAnnotations()).forEach(a -> f.removeAnnotation(a));
-				List.copyOf(newType.getAnnotations()).forEach(a -> newTypeConst.removeAnnotation(a));
+				List.copyOf(newType.getAnnotations()).forEach(a -> newType.removeAnnotation(a));
 
 				return (CtField<?>) factory.createField(testClass, Set.of(), newType, f.getSimpleName());
 			})
