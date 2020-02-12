@@ -18,10 +18,6 @@ import java.util.stream.Stream;
 import spoon.template.ExtensionTemplate;
 
 public class CmdTestClassTemplate extends ExtensionTemplate {
-	protected Stream<Runnable> cannotDoConfigurations() {
-		return Stream.of();
-	}
-
 	protected Stream<Runnable> canDoConfigurations() {
 		return Stream.of(() -> {
 		});

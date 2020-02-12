@@ -31,6 +31,7 @@ import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtType;
 import spoon.reflect.declaration.CtTypeParameter;
 import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtTypeParameterReference;
@@ -71,15 +72,39 @@ public class CmdTestGenerator {
 		final CtAnnotation<Annotation> overrideAnnot = factory.createAnnotation(factory.createCtTypeReference(Override.class));
 		testClass.getMethods().forEach(m -> m.addAnnotation(overrideAnnot));
 
+		// If undoable, the method undoChecker must be implemented
 		if(isUndoable) {
 			final var undochecker = testClass.getMethod("doChecker").clone();
 			undochecker.setSimpleName("undoChecker");
 			testClass.addMethod(undochecker);
 		}
 
+		// If the method canDo is implemented in the command or in a parent
+		// the method cannotDoConfigurations must be generated.
+		if(hasCanDo()) {
+			final var undochecker = testClass.getMethod("canDoConfigurations").clone();
+			undochecker.setSimpleName("cannotDoConfigurations");
+			testClass.addMethod(undochecker);
+		}
+
 		addAttributes();
 
 		addTearDown();
+	}
+
+	private boolean hasCanDo() {
+		boolean cando = false;
+		CtType<?> currentType = cmd;
+
+		while(!cando && !"CommandImpl".equals(currentType.getSimpleName())) {
+			cando = currentType
+				.getMethods()
+				.stream()
+				.anyMatch(m -> m.getParameters().isEmpty() && "canDo".equals(m.getSimpleName()));
+			currentType = currentType.getSuperclass().getTypeDeclaration();
+		}
+
+		return cando;
 	}
 
 	/**
