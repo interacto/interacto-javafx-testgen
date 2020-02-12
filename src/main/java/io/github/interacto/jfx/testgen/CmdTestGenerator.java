@@ -29,7 +29,9 @@ import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtTypeParameter;
 import spoon.reflect.factory.Factory;
+import spoon.reflect.reference.CtTypeParameterReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.template.Substitution;
 
@@ -68,15 +70,44 @@ public class CmdTestGenerator {
 		addTearDown();
 	}
 
+	/**
+	 * Finds a generics declaration in its super classes
+	 */
+	private static CtTypeParameter findGenerics(final CtTypeReference<?> type, final String genericName) {
+		if(type == null) {
+			return null;
+		}
+		return type
+			.getTypeDeclaration()
+			.getFormalCtTypeParameters()
+			.stream()
+			.filter(g -> genericName.equals(g.getSimpleName()))
+			.findFirst()
+			.orElseGet(() -> findGenerics(type.getSuperclass(), genericName));
+	}
+
 	private void addAttributes() {
 		fields = cmd.getAllFields()
 			.stream()
 			.filter(f -> !f.getDeclaringType().equals(cmdTypeRef))
-			.map(f -> (CtField<?>) factory.createField(testClass, Set.of(), f.getType(), f.getSimpleName()))
-			.peek(f -> {
-				final var type = f.getType();
+			.map(f -> {
+				CtTypeReference<?> newType = f.getType();
+				// If the type is a generics, have to replace it by its concrete definition
+				if(newType instanceof CtTypeParameterReference) {
+					final CtTypeParameter param = findGenerics(f.getDeclaringType(), f.getType().getSimpleName());
+					if(param.getSuperclass() == null) {
+						// If no super bound, use Object
+						newType = factory.createCtTypeReference(Object.class);
+					}else {
+						newType = param.getSuperclass();
+					}
+				}
+				// Removing all the annotations put on the field
+				final var newTypeConst = newType;
 				List.copyOf(f.getAnnotations()).forEach(a -> f.removeAnnotation(a));
-				List.copyOf(f.getType().getAnnotations()).forEach(a -> type.removeAnnotation(a));
+				List.copyOf(newType.getAnnotations()).forEach(a -> newTypeConst.removeAnnotation(a));
+
+				return (CtField<?>) factory.createField(testClass, Set.of(), newType, f.getSimpleName());
 			})
 			.collect(Collectors.toList());
 	}
