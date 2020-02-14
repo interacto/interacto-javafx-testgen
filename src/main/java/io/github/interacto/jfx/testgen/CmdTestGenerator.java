@@ -82,8 +82,8 @@ public class CmdTestGenerator {
 		// If the method canDo is implemented in the command or in a parent
 		// the method cannotDoConfigurations must be generated.
 		if(hasCanDo()) {
-			final var undochecker = testClass.getMethod("canDoConfigurations").clone();
-			undochecker.setSimpleName("cannotDoConfigurations");
+			final var undochecker = testClass.getMethod("canDoFixtures").clone();
+			undochecker.setSimpleName("cannotDoFixtures");
 			testClass.addMethod(undochecker);
 		}
 
