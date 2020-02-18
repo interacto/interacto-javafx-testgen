@@ -74,8 +74,8 @@ public class CmdTestGenerator {
 
 		// If undoable, the method undoChecker must be implemented
 		if(isUndoable) {
-			final var undochecker = testClass.getMethod("doChecker").clone();
-			undochecker.setSimpleName("undoChecker");
+			final var undochecker = testClass.getMethod("doCheckers").clone();
+			undochecker.setSimpleName("undoCheckers");
 			testClass.addMethod(undochecker);
 		}
 

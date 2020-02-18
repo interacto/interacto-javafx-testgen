@@ -23,8 +23,8 @@ public class CmdTestClassTemplate extends ExtensionTemplate {
 		});
 	}
 
-	protected Runnable doChecker() {
-		return () -> {
-		};
+	protected Stream<Runnable> doCheckers() {
+		return Stream.of(() -> {
+		});
 	}
 }
