@@ -31,7 +31,7 @@ public final class Main {
 		try {
 			final String basePath = "../example-jfx-drawingeditor/";
 //			final String basePath = "../../latexdraw/latexdraw/";
-			final MavenLauncher launcher = new MavenLauncher(basePath + "pom.xml", MavenLauncher.SOURCE_TYPE.APP_SOURCE);
+			final MavenLauncher launcher = new MavenLauncher(basePath, MavenLauncher.SOURCE_TYPE.APP_SOURCE);
 
 			final CountDownLatch startupLatch = new CountDownLatch(1);
 			PlatformImpl.startup(() -> startupLatch.countDown());
